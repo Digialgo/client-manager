@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Client Manager</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#111827;--mu:#6b7280;--bd:#e5e7eb;--ac:#2563eb;--hd:#111;--ok:#059669;--wa:#d97706;--er:#dc2626;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--card:#1a1d24;--tx:#f3f4f6;--mu:#9ca3af;--bd:#2d323c;--ac:#60a5fa;--hd:#000;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1115;--card:#1a1d24;--tx:#f3f4f6;--mu:#9ca3af;--bd:#2d323c;--ac:#60a5fa;--hd:#000;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px Arial,Helvetica,sans-serif}
+header{background:var(--hd);color:#fff;padding:16px 20px;font-size:20px;font-weight:700}
+main{max-width:1000px;margin:0 auto;padding:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.c{border-radius:8px;color:#fff;padding:10px;text-align:center}.c b{display:block;font-size:22px;margin-top:4px}.c small{font-size:10px;letter-spacing:.5px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px}
+.bar input{flex:1;min-width:140px}
+button{cursor:pointer}button.p{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}
+button.d{color:var(--er)}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:8px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th{background:#334155;color:#fff;text-align:left;padding:9px;font-size:12px}
+td{padding:9px;border-top:1px solid var(--bd)}tr.r{cursor:pointer}tr.r:hover td{background:var(--bg)}
+.t{padding:2px 8px;border-radius:10px;font-size:12px;color:#111;display:inline-block}
+.Paid,.Active{background:#bbf7d0}.Pending{background:#fde68a}.Overdue{background:#fca5a5}.Paused,.Ended{background:#d1d5db}
+.al{font-size:12px;font-weight:700}.mu{color:var(--mu)}
+.empty{padding:30px;text-align:center;color:var(--mu)}
+dialog{border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);width:min(560px,94vw);padding:16px;max-height:92vh}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g label{display:flex;flex-direction:column;font-size:12px;color:var(--mu);gap:3px}.f{grid-column:1/-1}
+.tk{display:flex;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--bd)}.tk span{flex:1}.tk .x{text-decoration:line-through;color:var(--mu)}
+h3{margin:14px 0 6px;font-size:14px}
+#auth{max-width:340px;margin:60px auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:20px}
+#auth input{width:100%;margin:6px 0}#auth .bar{margin:10px 0 0}#aerr{color:var(--er);font-size:12px;min-height:16px}
+#out{background:transparent;border-color:#555;color:#fff;float:right;font-size:12px;padding:5px 10px}
+.x{text-decoration:line-through;color:var(--mu)}
+</style></head><body>
+<header>Client Manager <button id="out" hidden>Sign out</button></header>
+<main>
+<div id="auth" hidden><b style="font-size:16px">Sign in</b><input id="em" type="email" placeholder="Email" autocomplete="email"><input id="pw" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password"><div id="aerr"></div><div class="bar"><button class="p" id="si">Sign in</button><button id="su">Create account</button></div></div>
+<div id="app" hidden>
+<div class="cards" id="cards"></div>
+<div class="bar" id="tabs"><button class="p" data-v="clients">Clients</button><button data-v="tasks">Tasks</button></div>
+<div id="vc"><div class="bar"><input id="q" placeholder="Search clients…"><select id="fs"><option value="">All status</option><option>Active</option><option>Paused</option><option>Ended</option></select><select id="fp"><option value="">All payments</option><option>Paid</option><option>Pending</option><option>Overdue</option></select><button class="p" id="add">+ Add client</button></div>
+<div class="box"><table><thead><tr><th>Client</th><th>Service</th><th>Fee (₹)</th><th>Payment</th><th>Renewal</th><th>Status</th><th>Tasks</th></tr></thead><tbody id="rows"></tbody></table><div id="none" class="empty" hidden>No clients yet. Click “Add client” to start.</div></div></div>
+<div id="vt" hidden><div class="bar"><select id="ta2"><option value="">All employees</option></select><select id="tf"><option value="">Open &amp; done</option><option value="open">Open only</option><option value="done">Done only</option></select></div>
+<div class="box"><table style="min-width:520px"><thead><tr><th style="width:36px"></th><th>Task</th><th>Client</th><th>Assigned to</th><th>Due</th></tr></thead><tbody id="trows"></tbody></table><div id="tnone" class="empty" hidden>No tasks to show.</div></div></div>
+</div>
+</main>
+<dialog id="dlg"><form method="dialog" id="fm" onsubmit="return false">
+<b id="dt" style="font-size:16px">Client</b>
+<div class="g" style="margin-top:10px">
+<label class="f">Client name<input id="name"></label>
+<label>Contact person<input id="contact"></label><label>Phone<input id="phone"></label>
+<label class="f">Email<input id="email" type="email"></label>
+<label>Service<select id="service"><option>Social Media</option><option>Website</option><option>SEO</option><option>Google Ads</option><option>Meta Ads</option><option>Branding</option><option>Google Business Profile</option><option>Content</option><option>Other</option></select></label>
+<label>Monthly fee (₹)<input id="fee" type="number" min="0"></label>
+<label>Renewal date<input id="renewal" type="date"></label>
+<label>Payment<select id="payment"><option>Paid</option><option>Pending</option><option>Overdue</option></select></label>
+<label>Status<select id="status"><option>Active</option><option>Paused</option><option>Ended</option></select></label>
+<label class="f">Notes<textarea id="notes" rows="3"></textarea></label>
+</div>
+<div id="tw"><h3>Tasks &amp; follow-ups</h3><div id="tl"></div>
+<div class="bar" style="margin:8px 0 0"><input id="tt" placeholder="New task…"><select id="tas"></select><input id="td" type="date" style="flex:0 0 auto"><button id="ta" type="button">Add</button></div></div>
+<div class="bar" style="margin:14px 0 0;justify-content:space-between"><button class="d" id="del" type="button">Delete</button><span><button type="button" id="cn">Cancel</button> <button class="p" id="sv" type="button">Save</button></span></div>
+</form></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ===== 1. PUT YOUR SUPABASE DETAILS HERE (Project Settings > API) ===== */
+const SUPABASE_URL="https://YOUR-PROJECT.supabase.co";
+const SUPABASE_ANON_KEY="YOUR-ANON-PUBLIC-KEY";
+/* ====================================================================== */
+const $=id=>document.getElementById(id);
+let db,clients=[],tasks=[],cur=null,team=[],me={role:"employee"};
+const nm=id=>(team.find(p=>p.id===id)||{}).name||"Unassigned";
+const F=["name","contact","phone","email","service","fee","renewal","payment","status","notes"];
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const days=d=>d?Math.ceil((new Date(d)-new Date(new Date().toDateString()))/864e5):null;
+const fmt=d=>d?new Date(d).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"–";
+function alert_(c){if(c.status!=="Active")return"";const n=days(c.renewal);if(n===null)return"";return n<0?'<div class="al" style="color:var(--er)">Renewal overdue</div>':n<=30?'<div class="al" style="color:var(--wa)">Renews in '+n+'d</div>':""}
+function render(){
+ const act=clients.filter(c=>c.status==="Active");
+ const pend=clients.filter(c=>c.payment!=="Paid"&&c.status!=="Ended").length;
+ const ren=act.filter(c=>{const n=days(c.renewal);return n!==null&&n<=30}).length;
+ const fee=act.reduce((s,c)=>s+(+c.fee||0),0);
+ const cd=[["TOTAL CLIENTS",clients.length,"#111"],["ACTIVE",act.length,"#059669"],["PAYMENT PENDING",pend,"#dc2626"],["MONTHLY FEE","₹"+fee.toLocaleString("en-IN"),"#2563eb"],["RENEWING ≤30 DAYS",ren,"#d97706"]];
+ $("cards").innerHTML=cd.map(x=>`<div class="c" style="background:${x[2]}"><small>${x[0]}</small><b>${x[1]}</b></div>`).join("");
+ const q=$("q").value.toLowerCase(),fs=$("fs").value,fp=$("fp").value;
+ const list=clients.filter(c=>(!fs||c.status===fs)&&(!fp||c.payment===fp)&&(!q||[c.name,c.contact,c.service,c.email].join(" ").toLowerCase().includes(q))).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+ $("none").hidden=clients.length>0;
+ $("rows").innerHTML=list.map(c=>{const t=tasks.filter(x=>x.clientId===c.id),o=t.filter(x=>!x.done).length;
+  return`<tr class="r" data-id="${c.id}"><td><b>${esc(c.name)}</b><div class="mu">${esc(c.contact)} ${esc(c.phone)}</div></td><td>${esc(c.service)}</td><td>${(+c.fee||0).toLocaleString("en-IN")}</td><td><span class="t ${c.payment}">${c.payment}</span></td><td>${fmt(c.renewal)}${alert_(c)}</td><td><span class="t ${c.status}">${c.status}</span></td><td>${o?o+" open":"–"}</td></tr>`}).join("");
+ renderTV();if(cur&&$("dlg").open)renderTasks();
+}
+function renderTV(){
+ const a=$("ta2").value,f=$("tf").value;
+ const L=tasks.filter(x=>(!a||x.assignee===a)&&(!f||(f==="done")===!!x.done)).sort((p,q)=>(!!p.done-!!q.done)||(p.due||"9").localeCompare(q.due||"9"));
+ $("tnone").hidden=L.length>0;
+ $("trows").innerHTML=L.map(x=>{const n=days(x.due),late=!x.done&&n!==null&&n<0;
+  return`<tr><td><input type="checkbox" data-t="${x.id}" ${x.done?"checked":""}></td><td class="${x.done?"x":""}">${esc(x.title)}</td><td>${esc(x.clientName)}</td><td>${esc(nm(x.assignee))}</td><td>${fmt(x.due)}${late?' <span class="al" style="color:var(--er)">Overdue</span>':""}</td></tr>`}).join("")}
+function show(v){$("vc").hidden=v!=="clients";$("vt").hidden=v!=="tasks";document.querySelectorAll("#tabs button").forEach(b=>b.className=b.dataset.v===v?"p":"")}
+function renderTasks(){
+ const t=tasks.filter(x=>x.clientId===cur).sort((a,b)=>(a.due||"9").localeCompare(b.due||"9"));
+ $("tl").innerHTML=t.length?t.map(x=>`<div class="tk"><input type="checkbox" data-t="${x.id}" ${x.done?"checked":""}><span class="${x.done?"x":""}">${esc(x.title)} <small class="mu">${esc(nm(x.assignee))} · ${x.due?fmt(x.due):"no date"}</small></span><button type="button" class="d" data-x="${x.id}">✕</button></div>`).join(""):'<div class="mu">No tasks yet.</div>';
+}
+function open_(id){
+ cur=id;const c=clients.find(x=>x.id===id)||{service:"Social Media",payment:"Paid",status:"Active"};
+ F.forEach(k=>$(k).value=c[k]??"");
+ $("dt").textContent=id?"Edit client":"New client";$("del").hidden=!id;$("tw").hidden=!id;
+ if(id)renderTasks();$("dlg").showModal();
+}
+async function save(){
+ const d={};F.forEach(k=>d[k]=$(k).value.trim());d.fee=+d.fee||0;
+ if(!d.name){$("name").focus();return}
+ const id=cur||"c"+Date.now();
+ try{await db.collection("clients").doc(id).set(d);$("dlg").close()}catch(e){alert("Could not save: "+(e.message||e.code))}
+}
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const subs=[];
+async function pull(k,cb){const{data,error}=await sb.from("records").select("id,data").eq("kind",k);
+ if(error){console.error(error);return}cb({docs:data.map(r=>({id:r.id,data:()=>r.data}))})}
+const refresh=k=>subs.filter(x=>x.k===k).forEach(x=>pull(k,x.cb));
+db={collection:k=>({
+ onSnapshot(cb){subs.push({k,cb});pull(k,cb)},
+ doc:id=>({
+  async set(d){const{error}=await sb.from("records").upsert({id,kind:k,data:d});if(error)throw error;refresh(k)},
+  async update(p){const{data:r}=await sb.from("records").select("data").eq("id",id).single();
+   const{error}=await sb.from("records").update({data:{...(r?r.data:{}),...p}}).eq("id",id);if(error)throw error;refresh(k)},
+  async delete(){const{error}=await sb.from("records").delete().eq("id",id);if(error)throw error;refresh(k)}})})};
+async function start(){
+ const{data:u}=await sb.auth.getUser();
+ const{data:ps}=await sb.from("profiles").select("id,name,email,role");
+ team=ps||[];me=team.find(p=>p.id===u.user.id)||{role:"employee"};
+ const adm=me.role==="admin",opts=team.map(p=>`<option value="${p.id}">${esc(p.name||p.email)}</option>`).join("");
+ $("tas").innerHTML=opts;$("ta2").insertAdjacentHTML("beforeend",opts);
+ $("ta2").hidden=!adm;$("tabs").hidden=!adm;$("cards").hidden=!adm;
+ if(!adm)show("tasks");
+ $("auth").hidden=true;$("app").hidden=false;$("out").hidden=false;
+ (adm?["clients","tasks"]:["tasks"]).forEach(k=>db.collection(k).onSnapshot(s=>{
+  const a=s.docs.map(d=>({id:d.id,...d.data()}));if(k==="clients")clients=a;else tasks=a;render()}));
+ sb.channel("rec").on("postgres_changes",{event:"*",schema:"public",table:"records"},()=>{refresh("tasks");if(adm)refresh("clients")}).subscribe();
+ window.addEventListener("focus",()=>{refresh("tasks");if(adm)refresh("clients")})}
+async function sign(up){$("aerr").textContent="";
+ const c={email:$("em").value.trim(),password:$("pw").value};
+ const{data,error}=up?await sb.auth.signUp(c):await sb.auth.signInWithPassword(c);
+ if(error){$("aerr").textContent=error.message;return}
+ if(!data.session){$("aerr").textContent="Account created. Confirm the email we sent, then sign in.";return}
+ start()}
+async function init(){
+ const{data}=await sb.auth.getSession();
+ if(data.session)start();else $("auth").hidden=false}
+$("si").onclick=()=>sign(false);$("su").onclick=()=>sign(true);
+$("out").onclick=async()=>{await sb.auth.signOut();location.reload()};
+$("add").onclick=()=>open_(null);
+$("rows").onclick=e=>{const r=e.target.closest("tr.r");if(r)open_(r.dataset.id)};
+["q","fs","fp"].forEach(i=>$(i).oninput=render);
+$("tabs").onclick=e=>{const v=e.target.dataset.v;if(v)show(v)};
+["ta2","tf"].forEach(i=>$(i).onchange=renderTV);
+$("trows").onchange=async e=>{const t=e.target.dataset.t;if(t)try{await db.collection("tasks").doc(t).update({done:e.target.checked})}catch(_){alert("Could not update")}};
+$("sv").onclick=save;$("cn").onclick=()=>$("dlg").close();
+$("del").onclick=async()=>{if(!confirm("Delete this client and its tasks?"))return;
+ try{for(const t of tasks.filter(x=>x.clientId===cur))await db.collection("tasks").doc(t.id).delete();await db.collection("clients").doc(cur).delete();$("dlg").close()}catch(e){alert("Could not delete")}};
+$("ta").onclick=async()=>{const t=$("tt").value.trim();if(!t||!cur)return;
+ try{await db.collection("tasks").doc("t"+Date.now()).set({clientId:cur,clientName:(clients.find(c=>c.id===cur)||{}).name||"",title:t,due:$("td").value,done:false,assignee:$("tas").value});$("tt").value="";$("td").value=""}catch(e){alert("Could not add task")}};
+$("tl").onclick=async e=>{const x=e.target.dataset.x;if(x)try{await db.collection("tasks").doc(x).delete()}catch(_){}};
+$("tl").onchange=async e=>{const t=e.target.dataset.t;if(t)try{await db.collection("tasks").doc(t).update({done:e.target.checked})}catch(_){}};
+init();
+</script></body></html>
